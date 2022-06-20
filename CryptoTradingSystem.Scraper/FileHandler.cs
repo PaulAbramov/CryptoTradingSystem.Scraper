@@ -11,18 +11,16 @@ namespace CryptoTradingSystem.Scraper
         public static byte[] DownloadFile(string _url)
         {
             byte[] data = new byte[]{};
-            using (var client = new WebClient())
+            using var client = new WebClient();
+            try
             {
-                try
+                data = client.DownloadData(_url);
+            }
+            catch (Exception e)
+            {
+                if (!e.Message.Contains("404"))
                 {
-                    data = client.DownloadData(_url);
-                }
-                catch (Exception e)
-                {
-                    if (!e.Message.Contains("404"))
-                    {
-                        Console.WriteLine(e);
-                    }
+                    Console.WriteLine(e);
                 }
             }
 
@@ -32,18 +30,18 @@ namespace CryptoTradingSystem.Scraper
         public static StreamReader? GetCSVFileStreamReader(byte[] _data)
         {
             Stream stream = new MemoryStream(_data);
-            ZipArchive archive = new ZipArchive(stream);
+            var archive = new ZipArchive(stream);
 
             var csvFile = archive.Entries.FirstOrDefault();
 
-            if (csvFile != null)
+            if (csvFile == null)
             {
-                var fileData = csvFile.Open();
-
-                return new StreamReader(fileData);
+                return null;
             }
 
-            return null;
+            var fileData = csvFile.Open();
+
+            return new StreamReader(fileData);
         }
     }
 }

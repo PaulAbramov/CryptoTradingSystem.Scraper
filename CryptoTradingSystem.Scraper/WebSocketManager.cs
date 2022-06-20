@@ -63,7 +63,7 @@ namespace CryptoTradingSystem.Scraper
         /// <param name="_timeFrame"></param>
         /// <param name="_asset"></param>
         /// <param name="_connectionString"></param>
-        private void HandleMessage(byte[] _buffer, int _count, Enums.Assets _asset, Enums.TimeFrames _timeFrame, string _connectionString)
+        private static void HandleMessage(byte[] _buffer, int _count, Enums.Assets _asset, Enums.TimeFrames _timeFrame, string _connectionString)
         {
             string callback = Encoding.UTF8.GetString(_buffer, 0, _count);
             JObject json;

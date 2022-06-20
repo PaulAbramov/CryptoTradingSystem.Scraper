@@ -6,7 +6,7 @@ using CryptoTradingSystem.General.Database.Models;
 
 namespace CryptoTradingSystem.Scraper
 {
-    class Scrapper
+    internal class Scrapper
     {
         private const string baseUrl = "https://data.binance.vision/data/spot/monthly/klines/";
         private const int startYear = 2017;
@@ -61,8 +61,8 @@ namespace CryptoTradingSystem.Scraper
                                     while ((dataToRead = reader.ReadLine()) != null)
                                     {
                                         var separatedstrings = dataToRead.Split(',');
-                                        DateTimeOffset dateTimeOpen = DateTimeOffset.FromUnixTimeMilliseconds(Convert.ToInt64(separatedstrings[0]));
-                                        DateTimeOffset dateTimeClose = DateTimeOffset.FromUnixTimeMilliseconds(Convert.ToInt64(separatedstrings[6]));
+                                        var dateTimeOpen = DateTimeOffset.FromUnixTimeMilliseconds(Convert.ToInt64(separatedstrings[0]));
+                                        var dateTimeClose = DateTimeOffset.FromUnixTimeMilliseconds(Convert.ToInt64(separatedstrings[6]));
 
                                         assets.Add(new Asset
                                         {
