@@ -12,9 +12,7 @@ namespace CryptoTradingSystem.Scraper
     {
         static void Main(string[] args)
         {
-            IConfiguration config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build();
+            IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
             var connectionString = config.GetValue<string>("ConnectionString");
 
@@ -31,12 +29,11 @@ namespace CryptoTradingSystem.Scraper
             Thread.CurrentThread.CurrentCulture = info;
             Thread.CurrentThread.CurrentUICulture = Thread.CurrentThread.CurrentCulture;
 
-            Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>> tasks = new Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>>();
-
+            var tasks = new Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>>();
 
             Task scrapperTask = Task.Factory.StartNew(() =>
             {
-                Scrapper scrapper = new Scrapper();
+                var scrapper = new Scrapper();
                 scrapper.StartScrapping(connectionString);
             });
 
@@ -76,14 +73,13 @@ namespace CryptoTradingSystem.Scraper
                     {
                         scrapperTask = Task.Factory.StartNew(() =>
                         {
-                            Scrapper scrapper = new Scrapper();
+                            var scrapper = new Scrapper();
                             scrapper.StartScrapping(connectionString);
                         });
 
                         runScrapper = false;
                     }
                 }
-
 
                 foreach (var asset in (Enums.Assets[])Enum.GetValues(typeof(Enums.Assets)))
                 {
