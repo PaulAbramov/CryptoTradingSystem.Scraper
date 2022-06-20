@@ -10,7 +10,7 @@ namespace CryptoTradingSystem.Scraper
     {
         public static void InitializeDatabase(string _connectionString)
         {
-            using CryptoTradingBotContext contextDB = new CryptoTradingBotContext(_connectionString);
+            using CryptoTradingSystemContext contextDB = new CryptoTradingSystemContext(_connectionString);
             contextDB.Database.EnsureCreated();
         }
 
@@ -18,7 +18,7 @@ namespace CryptoTradingSystem.Scraper
         {
             try
             {
-                using CryptoTradingBotContext contextDB = new CryptoTradingBotContext(_connectionString);
+                using CryptoTradingSystemContext contextDB = new CryptoTradingSystemContext(_connectionString);
                 using var transaction = contextDB.Database.BeginTransaction();
 
                 foreach (var asset in _assets)
