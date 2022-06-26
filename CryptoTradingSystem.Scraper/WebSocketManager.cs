@@ -15,6 +15,8 @@ namespace CryptoTradingSystem.Scraper
     {
         public void CreateWebSocket(Enums.Assets _asset, Enums.TimeFrames _timeFrame, string _connectionString)
         {
+            Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | open websocket");
+
             using var ws = new ClientWebSocket();
 
             try
@@ -38,13 +40,21 @@ namespace CryptoTradingSystem.Scraper
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    if (e.Message.Contains("The remote party closed the WebSocket connection without completing the close handshake"))
+                    {
+                        Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | closed without completing the handshake");
+                        ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        Console.WriteLine(e);
+                    }
                     return;
                 }
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | close als Message bekommen");
+                    Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | received closemessage");
 
                     ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                 }
