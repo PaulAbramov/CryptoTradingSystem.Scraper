@@ -6,7 +6,7 @@ using CryptoTradingSystem.General.Database.Models;
 
 namespace CryptoTradingSystem.Scraper
 {
-    internal class DatabaseHandler
+    internal static class DatabaseHandler
     {
         public static void InitializeDatabase(string _connectionString)
         {
@@ -46,7 +46,7 @@ namespace CryptoTradingSystem.Scraper
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine($"{DateTime.Now} {e}");
                 throw;
             }
         }

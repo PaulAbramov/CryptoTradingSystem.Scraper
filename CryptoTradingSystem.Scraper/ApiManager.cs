@@ -48,7 +48,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine($"{DateTime.Now} {e}");
                     throw;
                 }
             }

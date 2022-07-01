@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
+using CryptoTradingSystem.General.Helper;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -82,7 +83,7 @@ namespace CryptoTradingSystem.Scraper
                                         });
                                     }
 
-                                    DatabaseHandler.UpsertCandles(assets, _connectionString);
+                                    Retry.Do(() => DatabaseHandler.UpsertCandles(assets, _connectionString), TimeSpan.FromSeconds(1));
                                 }
                             }
 
