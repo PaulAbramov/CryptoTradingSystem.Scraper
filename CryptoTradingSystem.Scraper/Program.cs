@@ -118,7 +118,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 else
                 {
-                    Console.WriteLine($"{_asset} | {_timeFrame} | getting quotes did not work");
+                    Console.WriteLine($"{DateTime.Now} {_asset} | {_timeFrame} | getting quotes did not work");
                 }
             });
 

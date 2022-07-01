@@ -20,7 +20,7 @@ namespace CryptoTradingSystem.Scraper
             {
                 if (!e.Message.Contains("404"))
                 {
-                    Console.WriteLine(e);
+                    Console.WriteLine($"{DateTime.Now} {e}");
                 }
             }
 

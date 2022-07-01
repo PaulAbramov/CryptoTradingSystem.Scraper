@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
+using CryptoTradingSystem.General.Helper;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -15,7 +16,7 @@ namespace CryptoTradingSystem.Scraper
     {
         public void CreateWebSocket(Enums.Assets _asset, Enums.TimeFrames _timeFrame, string _connectionString)
         {
-            Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | open websocket");
+            Console.WriteLine($"{DateTime.Now} {_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | open websocket");
 
             using var ws = new ClientWebSocket();
 
@@ -26,7 +27,7 @@ namespace CryptoTradingSystem.Scraper
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine($"{DateTime.Now} {e}");
                 throw;
             }
 
@@ -42,19 +43,19 @@ namespace CryptoTradingSystem.Scraper
                 {
                     if (e.Message.Contains("The remote party closed the WebSocket connection without completing the close handshake"))
                     {
-                        Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | closed without completing the handshake");
+                        Console.WriteLine($"{DateTime.Now} {_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | closed without completing the handshake");
                         ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                     }
                     else
                     {
-                        Console.WriteLine(e);
+                        Console.WriteLine($"{DateTime.Now} {e}");
                     }
                     return;
                 }
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Console.WriteLine($"{_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | received closemessage");
+                    Console.WriteLine($"{DateTime.Now} {_asset.GetStringValue()} | {_timeFrame.GetStringValue()} | received close message");
 
                     ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                 }
@@ -91,9 +92,9 @@ namespace CryptoTradingSystem.Scraper
 
                     json = JObject.Parse(fixedCallback);
                 }
-                catch (Exception exception)
+                catch (Exception ex)
                 {
-                    Console.WriteLine(exception);
+                    Console.WriteLine($"{DateTime.Now} {ex}");
                     throw;
                 }
             }
@@ -113,7 +114,7 @@ namespace CryptoTradingSystem.Scraper
             DateTimeOffset dateTimeOpen = DateTimeOffset.FromUnixTimeMilliseconds(openTime);
             DateTimeOffset dateTimeClose = DateTimeOffset.FromUnixTimeMilliseconds(closeTime);
 
-            DatabaseHandler.UpsertCandles(new List<Asset>
+            Retry.Do(() => DatabaseHandler.UpsertCandles(new List<Asset>
             {
                 new Asset
                 {
@@ -131,7 +132,7 @@ namespace CryptoTradingSystem.Scraper
                     TakerBuyBaseAssetVolume = Convert.ToDecimal(TakerBuyBaseAssetVolumeString),
                     TakerBuyQuoteAssetVolume = Convert.ToDecimal(TakerBuyQuoteAssetVolumeString)
                 }
-            }, _connectionString);
+            }, _connectionString), TimeSpan.FromSeconds(1));
         }
     }
 }
