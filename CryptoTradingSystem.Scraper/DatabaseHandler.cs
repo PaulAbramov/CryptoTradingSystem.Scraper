@@ -11,8 +11,21 @@ namespace CryptoTradingSystem.Scraper
     {
         public static void InitializeDatabase(string _connectionString)
         {
-            using CryptoTradingSystemContext contextDB = new CryptoTradingSystemContext(_connectionString);
-            contextDB.Database.EnsureCreated();
+            try
+            {
+                using CryptoTradingSystemContext contextDB = new CryptoTradingSystemContext(_connectionString);
+                contextDB.Database.EnsureCreated();
+            }
+            catch (ArgumentException e)
+            {
+                Log.Error(e, "Connectionstring is not correct: '{connectionString}'", _connectionString);
+                throw;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "could not ensure the creation of the database '{connectionString}'", _connectionString);
+                throw;
+            }
         }
 
         public static void UpsertCandles(List<Asset> _assets, string _connectionString)

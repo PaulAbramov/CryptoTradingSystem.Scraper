@@ -14,16 +14,16 @@ namespace CryptoTradingSystem.Scraper
     {
         static void Main(string[] args)
         {
+            IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+
+            var loggingfilePath = config.GetValue<string>("LoggingLocation");
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.Console()
-                .WriteTo.File("logs/Scraper.txt",  rollingInterval: RollingInterval.Day)
+                .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
 
-            IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-
             var connectionString = config.GetValue<string>("ConnectionString");
-
             DatabaseHandler.InitializeDatabase(connectionString);
 
             CultureInfo info = new CultureInfo("de-DE")
