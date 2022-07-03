@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using Serilog;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -20,7 +21,7 @@ namespace CryptoTradingSystem.Scraper
             {
                 if (!e.Message.Contains("404"))
                 {
-                    Console.WriteLine($"{DateTime.Now} {e}");
+                    Log.Error(e, "error while downloading data, and not 404 error (file not found) : {url}", _url);
                 }
             }
 

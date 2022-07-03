@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using CryptoTradingSystem.General.Data;
+using Serilog;
 using Skender.Stock.Indicators;
 
 namespace CryptoTradingSystem.Scraper
@@ -48,7 +49,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"{DateTime.Now} {e}");
+                    Log.Error(e, "could not add to the quotes {entry}", entry);
                     throw;
                 }
             }
