@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CryptoTradingSystem.General.Database;
 using CryptoTradingSystem.General.Database.Models;
+using Serilog;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -46,7 +47,7 @@ namespace CryptoTradingSystem.Scraper
             }
             catch (Exception e)
             {
-                Console.WriteLine($"{DateTime.Now} {e}");
+                Log.Error(e, "could not do the upsert transaction of {assets}", _assets);
                 throw;
             }
         }

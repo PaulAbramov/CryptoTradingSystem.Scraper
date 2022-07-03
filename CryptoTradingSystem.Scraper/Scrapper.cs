@@ -4,6 +4,7 @@ using System.IO;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
 using CryptoTradingSystem.General.Helper;
+using Serilog;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -48,7 +49,7 @@ namespace CryptoTradingSystem.Scraper
                             }
                             dayUrl += ".zip";
 
-                            Console.WriteLine(DateTime.Now + " " + dayUrl);
+                            Log.Information("{dayUrl}",dayUrl);
 
                             var data = FileHandler.DownloadFile(dayUrl);
                             if (data.Length != 0)

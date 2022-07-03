@@ -4,7 +4,9 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using CryptoTradingSystem.General.Data;
+using CryptoTradingSystem.General.Helper;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -12,6 +14,12 @@ namespace CryptoTradingSystem.Scraper
     {
         static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .WriteTo.Console()
+                .WriteTo.File("logs/Scraper.txt",  rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 
             var connectionString = config.GetValue<string>("ConnectionString");
@@ -118,7 +126,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 else
                 {
-                    Console.WriteLine($"{DateTime.Now} {_asset} | {_timeFrame} | getting quotes did not work");
+                    Log.Error($"{_asset} | {_timeFrame} | getting quotes did not work");
                 }
             });
 
