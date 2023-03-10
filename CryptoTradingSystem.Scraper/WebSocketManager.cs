@@ -1,0 +1,139 @@
+﻿#nullable enable
+using System;
+using System.Collections.Generic;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
+using CryptoTradingSystem.General.Data;
+using CryptoTradingSystem.General.Database.Models;
+using CryptoTradingSystem.General.Helper;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Serilog;
+
+namespace CryptoTradingSystem.Scraper
+{
+    internal static class WebSocketManager
+    {
+        public static void CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
+        {
+            Log.Information("{asset} | {timeFrame} | open websocket", asset.GetStringValue(), timeFrame.GetStringValue());
+
+            using var ws = new ClientWebSocket();
+
+            try
+            {
+                var uri = new Uri($"wss://stream.binance.com:9443/ws/{asset.GetStringValue()}@kline_{timeFrame.GetStringValue()}");
+                ws.ConnectAsync(uri, CancellationToken.None).GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "{asset} | {timeFrame} | could not connect to the websocket", asset.GetStringValue(), timeFrame.GetStringValue());
+                throw;
+            }
+
+            var buffer = new byte[2048];
+            while (ws.State == WebSocketState.Open)
+            {
+                WebSocketReceiveResult? result;
+                try
+                {
+                    result = ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).GetAwaiter().GetResult();
+                }
+                catch (Exception e)
+                {
+                    if (e.Message.Contains("The remote party closed the WebSocket connection without completing the close handshake"))
+                    {
+                        Log.Information(e, "{asset} | {timeFrame} | closed without completing the handshake", asset.GetStringValue(), timeFrame.GetStringValue());
+                        ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        Log.Error(e, "{asset} | {timeFrame} | could not receive message from remote", asset.GetStringValue(), timeFrame.GetStringValue());
+                    }
+                    return;
+                }
+
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    Log.Warning("{asset} | {timeFrame} | received close message", asset.GetStringValue(), timeFrame.GetStringValue());
+
+                    ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
+                }
+                else
+                {
+                    HandleMessage(buffer, result.Count, asset, timeFrame, connectionString);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Actually insert the candle into the DB
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="count"></param>
+        /// <param name="timeFrame"></param>
+        /// <param name="asset"></param>
+        /// <param name="connectionString"></param>
+        private static void HandleMessage(byte[] buffer, int count, Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
+        {
+            var callback = Encoding.UTF8.GetString(buffer, 0, count);
+            JObject json;
+
+            try
+            {
+                json = JObject.Parse(callback);
+            }
+            catch (JsonReaderException e)
+            {
+                try
+                {
+                    var callbackLength = callback.Length;
+                    var fixedCallback = callback.Remove(callbackLength - 2, 1);
+
+                    json = JObject.Parse(fixedCallback);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "{asset} | {timeFrame} | could not parse callback {callback}", asset.GetStringValue(), timeFrame.GetStringValue(), callback);
+                    throw;
+                }
+            }
+
+            var openTime = Convert.ToInt64(json["k"]?["t"]!.Value<string>());
+            var closeTime = Convert.ToInt64(json["k"]?["T"]!.Value<string>());
+
+            var openPriceString = json["k"]?["o"]!.Value<string>()!;
+            var highPriceString = json["k"]?["h"]!.Value<string>()!;
+            var lowPriceString = json["k"]?["l"]!.Value<string>()!;
+            var closePriceString = json["k"]?["c"]!.Value<string>()!;
+            var volumeString = json["k"]?["v"]!.Value<string>()!;
+            var quoteAssetVolumeString = json["k"]?["q"]!.Value<string>()!;
+            var tradesString = json["k"]?["n"]!.Value<string>()!;
+            var takerBuyBaseAssetVolumeString = json["k"]?["V"]!.Value<string>()!;
+            var takerBuyQuoteAssetVolumeString = json["k"]?["Q"]!.Value<string>()!;
+            var dateTimeOpen = DateTimeOffset.FromUnixTimeMilliseconds(openTime);
+            var dateTimeClose = DateTimeOffset.FromUnixTimeMilliseconds(closeTime);
+
+            Retry.Do(() => DatabaseHandler.UpsertCandles(new List<Asset>
+            {
+                new Asset
+                {
+                    AssetName = asset.GetStringValue(),
+                    Interval = timeFrame.GetStringValue(),
+                    OpenTime = dateTimeOpen.DateTime,
+                    CandleOpen = Convert.ToDecimal(openPriceString),
+                    CandleHigh = Convert.ToDecimal(highPriceString),
+                    CandleLow = Convert.ToDecimal(lowPriceString),
+                    CandleClose = Convert.ToDecimal(closePriceString),
+                    CloseTime = dateTimeClose.DateTime,
+                    Volume = Convert.ToDecimal(volumeString),
+                    QuoteAssetVolume = Convert.ToDecimal(quoteAssetVolumeString),
+                    Trades = Convert.ToInt64(tradesString),
+                    TakerBuyBaseAssetVolume = Convert.ToDecimal(takerBuyBaseAssetVolumeString),
+                    TakerBuyQuoteAssetVolume = Convert.ToDecimal(takerBuyQuoteAssetVolumeString)
+                }
+            }, connectionString), TimeSpan.FromSeconds(1));
+        }
+    }
+}
