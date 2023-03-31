@@ -1,0 +1,8 @@
+﻿version: "3.8"
+services:
+  scraper:
+    container_name: scraper
+    build:
+      dockerfile: Dockerfile
+    image: scraper:latest
+    platform: linux/arm64
