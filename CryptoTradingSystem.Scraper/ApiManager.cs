@@ -49,7 +49,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 catch (Exception e)
                 {
-                    Log.Error(e, "could not add to the quotes {entry}", entry);
+                    Log.Error(e, "could not add to the quotes {Entry}", entry);
                     throw;
                 }
             }

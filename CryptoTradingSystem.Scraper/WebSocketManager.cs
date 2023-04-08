@@ -17,7 +17,7 @@ namespace CryptoTradingSystem.Scraper
     {
         public static void CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
         {
-            Log.Information("{asset} | {timeFrame} | open websocket", asset.GetStringValue(), timeFrame.GetStringValue());
+            Log.Information("{Asset} | {TimeFrame} | open websocket", asset.GetStringValue(), timeFrame.GetStringValue());
 
             using var ws = new ClientWebSocket();
 
@@ -28,7 +28,7 @@ namespace CryptoTradingSystem.Scraper
             }
             catch (Exception e)
             {
-                Log.Error(e, "{asset} | {timeFrame} | could not connect to the websocket", asset.GetStringValue(), timeFrame.GetStringValue());
+                Log.Error(e, "{Asset} | {TimeFrame} | could not connect to the websocket", asset.GetStringValue(), timeFrame.GetStringValue());
                 throw;
             }
 
@@ -44,19 +44,19 @@ namespace CryptoTradingSystem.Scraper
                 {
                     if (e.Message.Contains("The remote party closed the WebSocket connection without completing the close handshake"))
                     {
-                        Log.Information(e, "{asset} | {timeFrame} | closed without completing the handshake", asset.GetStringValue(), timeFrame.GetStringValue());
+                        Log.Information(e, "{Asset} | {TimeFrame} | closed without completing the handshake", asset.GetStringValue(), timeFrame.GetStringValue());
                         ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                     }
                     else
                     {
-                        Log.Error(e, "{asset} | {timeFrame} | could not receive message from remote", asset.GetStringValue(), timeFrame.GetStringValue());
+                        Log.Error(e, "{Asset} | {TimeFrame} | could not receive message from remote", asset.GetStringValue(), timeFrame.GetStringValue());
                     }
                     return;
                 }
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    Log.Warning("{asset} | {timeFrame} | received close message", asset.GetStringValue(), timeFrame.GetStringValue());
+                    Log.Warning("{Asset} | {TimeFrame} | received close message", asset.GetStringValue(), timeFrame.GetStringValue());
 
                     ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None).GetAwaiter().GetResult();
                 }
@@ -95,7 +95,10 @@ namespace CryptoTradingSystem.Scraper
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex, "{asset} | {timeFrame} | could not parse callback {callback}", asset.GetStringValue(), timeFrame.GetStringValue(), callback);
+                    Log.Error(ex, "{Asset} | {TimeFrame} | could not parse callback {Callback}",
+                        asset.GetStringValue(),
+                        timeFrame.GetStringValue(),
+                        callback);
                     throw;
                 }
             }

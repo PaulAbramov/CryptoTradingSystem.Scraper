@@ -13,17 +13,17 @@ namespace CryptoTradingSystem.Scraper
         {
             try
             {
-                using var contextDB = new CryptoTradingSystemContext(connectionString);
-                contextDB.Database.EnsureCreated();
+                using var contextDb = new CryptoTradingSystemContext(connectionString);
+                contextDb.Database.EnsureCreated();
             }
             catch (ArgumentException e)
             {
-                Log.Error(e, "Connectionstring is not correct: '{connectionString}'", connectionString);
+                Log.Error(e, "Connectionstring is not correct: '{ConnectionString}'", connectionString);
                 throw;
             }
             catch (Exception e)
             {
-                Log.Error(e, "could not ensure the creation of the database '{connectionString}'", connectionString);
+                Log.Error(e, "could not ensure the creation of the database '{ConnectionString}'", connectionString);
                 throw;
             }
         }
@@ -32,12 +32,12 @@ namespace CryptoTradingSystem.Scraper
         {
             try
             {
-                using var contextDB = new CryptoTradingSystemContext(connectionString);
-                using var transaction = contextDB.Database.BeginTransaction();
+                using var contextDb = new CryptoTradingSystemContext(connectionString);
+                using var transaction = contextDb.Database.BeginTransaction();
 
                 foreach (var asset in assets)
                 {
-                    var candle = contextDB.Assets?.FirstOrDefault(x => 
+                    var candle = contextDb.Assets?.FirstOrDefault(x => 
                         x.AssetName == asset.AssetName && 
                         x.Interval == asset.Interval && 
                         x.OpenTime == asset.OpenTime && 
@@ -56,16 +56,17 @@ namespace CryptoTradingSystem.Scraper
                     }
                     else
                     {
-                        contextDB.Assets?.Add(asset);
+                        contextDb.Assets?.Add(asset);
                     }
                 }
-                contextDB.SaveChanges();
+                contextDb.SaveChanges();
                 transaction.Commit();
             }
             catch (Exception e)
             {
                 var asset = assets.FirstOrDefault();
-                Log.Error("{asset} | {timeFrame} | Could not do the upsert transaction.", asset.AssetName, asset.Interval);
+                Log.Error(e, "{Asset} | {TimeFrame} | Could not do the upsert transaction",
+                    asset?.AssetName, asset?.Interval);
                 throw;
             }
         }

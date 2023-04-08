@@ -19,12 +19,15 @@ namespace CryptoTradingSystem.Scraper
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
 #if RELEASE
-                .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information)
+                .WriteTo.Console(restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Information,
+                                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
 #endif
 #if DEBUG
-                .WriteTo.Console()
+                .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
 #endif
-                .WriteTo.File(loggingfilePath, rollingInterval: RollingInterval.Day)
+                .WriteTo.File(loggingfilePath, 
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
 
             var connectionString = config.GetValue<string>("ConnectionString");
@@ -128,7 +131,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 else
                 {
-                    Log.Error($"{asset} | {timeFrame} | getting quotes did not work");
+                    Log.Error("{Asset} | {TimeFrame} | getting quotes did not work", asset, timeFrame);
                 }
             });
 
