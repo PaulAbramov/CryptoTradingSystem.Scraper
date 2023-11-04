@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using CryptoTradingSystem.General.Data;
+﻿using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
 using CryptoTradingSystem.General.Helper;
 using Serilog;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -27,6 +27,7 @@ namespace CryptoTradingSystem.Scraper
         {
             foreach (var asset in (Enums.Assets[])Enum.GetValues(typeof(Enums.Assets)))
             {
+                decimal? lastCandleClose = null;
                 foreach (var timeFrame in (Enums.TimeFrames[])Enum.GetValues(typeof(Enums.TimeFrames)))
                 {
                     var url = $"{BaseUrl}{asset.GetStringValue()?.ToUpper()}/{timeFrame.GetStringValue()}/{asset.GetStringValue()?.ToUpper()}-{timeFrame.GetStringValue()}-";
@@ -49,7 +50,7 @@ namespace CryptoTradingSystem.Scraper
                             }
                             dayUrl += ".zip";
 
-                            Log.Information("{dayUrl}",dayUrl);
+                            Log.Information("{dayUrl}", dayUrl);
 
                             var data = FileHandler.DownloadFile(dayUrl);
                             if (data.Length != 0)
@@ -58,6 +59,7 @@ namespace CryptoTradingSystem.Scraper
                                 if (reader != null)
                                 {
                                     var assets = new List<Asset>();
+                                    var additionalInformations = new List<AssetAdditionalInformation>();
 
                                     string? dataToRead;
                                     while ((dataToRead = reader.ReadLine()) != null)
@@ -82,9 +84,18 @@ namespace CryptoTradingSystem.Scraper
                                             TakerBuyBaseAssetVolume = Convert.ToDecimal(separatedstrings[9]),
                                             TakerBuyQuoteAssetVolume = Convert.ToDecimal(separatedstrings[10])
                                         });
+
+                                        CalculateAdditionalInformations(lastCandleClose,
+                                                                        Convert.ToDecimal(separatedstrings[4]),
+                                                                        asset.GetStringValue()?.ToLower()!,
+                                                                        timeFrame.GetStringValue()!,
+                                                                        dateTimeOpen.DateTime,
+                                                                        dateTimeClose.DateTime,
+                                                                        additionalInformations);
                                     }
 
                                     Retry.Do(() => DatabaseHandler.UpsertCandles(assets, connectionString), TimeSpan.FromSeconds(1));
+                                    Retry.Do(() => DatabaseHandler.UpsertAssetAdditionalInformation(additionalInformations, connectionString), TimeSpan.FromSeconds(1));
                                 }
                             }
 
@@ -101,6 +112,32 @@ namespace CryptoTradingSystem.Scraper
                     }
                 }
             }
+        }
+
+        private void CalculateAdditionalInformations(
+            decimal? lastCandleClose,
+            decimal currentCandleClose,
+            string assetName,
+            string interval,
+            DateTime openTime,
+            DateTime closeTime,
+            List<AssetAdditionalInformation> additionalInformations)
+        {
+            var assetAdditionalInformation = new AssetAdditionalInformation
+            {
+                AssetName = assetName,
+                Interval = interval,
+                OpenTime = openTime,
+                CloseTime = closeTime
+            };
+
+            if (lastCandleClose != null)
+            {
+                assetAdditionalInformation.ReturnToLastCandle = currentCandleClose - lastCandleClose.Value;
+                assetAdditionalInformation.ReturnToLastCandleInPercentage = currentCandleClose - lastCandleClose.Value / lastCandleClose.Value;
+            }
+
+            additionalInformations.Add(assetAdditionalInformation);
         }
     }
 }

@@ -1,22 +1,24 @@
 ﻿#nullable enable
-using System;
-using System.Collections.Generic;
-using System.Net.WebSockets;
-using System.Text;
-using System.Threading;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Database.Models;
 using CryptoTradingSystem.General.Helper;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
+using System;
+using System.Collections.Generic;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
 
 namespace CryptoTradingSystem.Scraper
 {
-    internal static class WebSocketManager
+    public class WebSocketManager
     {
-        public static void CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
+        public void CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
         {
+            Tuple<DateTime, decimal?> lastCandleClose = new Tuple<DateTime, decimal?>(default, default);
+
             Log.Information("{Asset} | {TimeFrame} | open websocket", asset.GetStringValue(), timeFrame.GetStringValue());
 
             using var ws = new ClientWebSocket();
@@ -62,7 +64,7 @@ namespace CryptoTradingSystem.Scraper
                 }
                 else
                 {
-                    HandleMessage(buffer, result.Count, asset, timeFrame, connectionString);
+                    HandleMessage(buffer, result.Count, asset, timeFrame, connectionString, ref lastCandleClose);
                 }
             }
         }
@@ -75,7 +77,13 @@ namespace CryptoTradingSystem.Scraper
         /// <param name="timeFrame"></param>
         /// <param name="asset"></param>
         /// <param name="connectionString"></param>
-        private static void HandleMessage(byte[] buffer, int count, Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
+        private void HandleMessage(
+            byte[] buffer,
+            int count,
+            Enums.Assets asset,
+            Enums.TimeFrames timeFrame,
+            string connectionString,
+            ref Tuple<DateTime, decimal?> lastCandleClose)
         {
             var callback = Encoding.UTF8.GetString(buffer, 0, count);
             JObject json;
@@ -137,6 +145,26 @@ namespace CryptoTradingSystem.Scraper
                     TakerBuyQuoteAssetVolume = Convert.ToDecimal(takerBuyQuoteAssetVolumeString)
                 }
             }, connectionString), TimeSpan.FromSeconds(1));
+
+            decimal? lastCandleCloseValue = lastCandleClose.Item2;
+
+            Retry.Do(() => DatabaseHandler.UpsertAssetAdditionalInformation(new List<AssetAdditionalInformation>
+            {
+                new AssetAdditionalInformation
+                {
+                    AssetName = asset.GetStringValue(),
+                    Interval = timeFrame.GetStringValue(),
+                    OpenTime = dateTimeOpen.DateTime,
+                    CloseTime = dateTimeClose.DateTime,
+                    ReturnToLastCandle = lastCandleCloseValue.HasValue ? Convert.ToDecimal(closePriceString) - lastCandleCloseValue.Value : null,
+                    ReturnToLastCandleInPercentage = lastCandleCloseValue.HasValue ? (Convert.ToDecimal(closePriceString) - lastCandleCloseValue.Value) / lastCandleCloseValue.Value : null,
+                }
+            }, connectionString), TimeSpan.FromSeconds(1));
+
+            if (lastCandleClose.Item1 != dateTimeClose.DateTime)
+            {
+                lastCandleClose = new Tuple<DateTime, decimal?>(dateTimeClose.DateTime, Convert.ToDecimal(closePriceString));
+            }
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿using System;
+﻿using CryptoTradingSystem.General.Data;
+using Microsoft.Extensions.Configuration;
+using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using CryptoTradingSystem.General.Data;
-using Microsoft.Extensions.Configuration;
-using Serilog;
 
 namespace CryptoTradingSystem.Scraper
 {
@@ -25,7 +25,7 @@ namespace CryptoTradingSystem.Scraper
 #if DEBUG
                 .WriteTo.Console(outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
 #endif
-                .WriteTo.File(loggingfilePath, 
+                .WriteTo.File(loggingfilePath,
                     rollingInterval: RollingInterval.Day,
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
@@ -68,48 +68,67 @@ namespace CryptoTradingSystem.Scraper
 
             while (true)
             {
-                if (scrapperTask.Status != TaskStatus.Running &&
-                    scrapperTask.Status != TaskStatus.WaitingToRun)
-                {
-                    if (DateTime.Now.Day == 2)
-                    {
-                        if (allowToRunScrapper)
-                        {
-                            allowToRunScrapper = false;
-                            runScrapper = true;
-                        }
-                    }
-                    else
-                    {
-                        allowToRunScrapper = true;
-                    }
-
-                    if (runScrapper)
-                    {
-                        scrapperTask = Task.Factory.StartNew(() =>
-                        {
-                            var scrapper = new Scrapper();
-                            scrapper.StartScrapping(connectionString);
-                        });
-
-                        runScrapper = false;
-                    }
-                }
-
-                foreach (var asset in (Enums.Assets[])Enum.GetValues(typeof(Enums.Assets)))
-                {
-                    foreach (var timeFrame in (Enums.TimeFrames[])Enum.GetValues(typeof(Enums.TimeFrames)))
-                    {
-                        var taskToCheck = tasks[asset][timeFrame];
-                        if (taskToCheck.Status != TaskStatus.Running &&
-                            taskToCheck.Status != TaskStatus.WaitingToRun)
-                        {
-                            tasks[asset][timeFrame] = CreateWebsocket(asset, timeFrame, connectionString);
-                        }
-                    }
-                }
+                HandleScrapperStatus(scrapperTask, runScrapper, allowToRunScrapper, connectionString, tasks);
 
                 Task.Delay(500).GetAwaiter().GetResult();
+            }
+        }
+
+        private static void HandleScrapperStatus(
+            Task scrapperTask,
+            bool runScrapper,
+            bool allowToRunScrapper,
+            string connectionString,
+            Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>> tasks)
+        {
+            if (scrapperTask.Status != TaskStatus.Running &&
+                    scrapperTask.Status != TaskStatus.WaitingToRun)
+            {
+                RestartScrapperOnEverySecondDayOfMonth(scrapperTask, runScrapper, allowToRunScrapper, connectionString);
+            }
+
+            foreach (var asset in (Enums.Assets[])Enum.GetValues(typeof(Enums.Assets)))
+            {
+                foreach (var timeFrame in (Enums.TimeFrames[])Enum.GetValues(typeof(Enums.TimeFrames)))
+                {
+                    var taskToCheck = tasks[asset][timeFrame];
+                    if (taskToCheck.Status != TaskStatus.Running &&
+                        taskToCheck.Status != TaskStatus.WaitingToRun)
+                    {
+                        tasks[asset][timeFrame] = CreateWebsocket(asset, timeFrame, connectionString);
+                    }
+                }
+            }
+        }
+
+        private static void RestartScrapperOnEverySecondDayOfMonth(
+            Task scrapperTask,
+            bool runScrapper,
+            bool allowToRunScrapper,
+            string connectionString)
+        {
+            if (DateTime.Now.Day == 2)
+            {
+                if (allowToRunScrapper)
+                {
+                    allowToRunScrapper = false;
+                    runScrapper = true;
+                }
+            }
+            else
+            {
+                allowToRunScrapper = true;
+            }
+
+            if (runScrapper)
+            {
+                scrapperTask = Task.Factory.StartNew(() =>
+                {
+                    var scrapper = new Scrapper();
+                    scrapper.StartScrapping(connectionString);
+                });
+
+                runScrapper = false;
             }
         }
 
@@ -127,7 +146,8 @@ namespace CryptoTradingSystem.Scraper
                 var quotes = ApiManager.GetBinanceData(asset, timeFrame).GetAwaiter().GetResult();
                 if (quotes.Count > 0)
                 {
-                    WebSocketManager.CreateWebSocket(asset, timeFrame, connectionString);
+                    var websocket = new WebSocketManager();
+                    websocket.CreateWebSocket(asset, timeFrame, connectionString);
                 }
                 else
                 {
