@@ -1,48 +1,47 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using Serilog;
 
-namespace CryptoTradingSystem.Scraper
+namespace CryptoTradingSystem.Scraper;
+
+public static class FileHandler
 {
-    public static class FileHandler
-    {
-        public static byte[] DownloadFile(string url)
-        {
-            var data = Array.Empty<byte>();
-            using var client = new WebClient();
-            try
-            {
-                data = client.DownloadData(url);
-            }
-            catch (Exception e)
-            {
-                if (!e.Message.Contains("404"))
-                {
-                    Log.Error(e, "error while downloading data, and not 404 error (file not found) : {url}", url);
-                }
-            }
+	public static byte[] DownloadFile(string url)
+	{
+		var data = Array.Empty<byte>();
+		using var client = new WebClient();
+		try
+		{
+			data = client.DownloadData(url);
+		}
+		catch (Exception e)
+		{
+			if (!e.Message.Contains("404"))
+			{
+				Log.Error(e, "error while downloading data, and not 404 error (file not found) : {url}", url);
+			}
+		}
 
-            return data;
-        }
+		return data;
+	}
 
-        public static StreamReader? GetCSVFileStreamReader(byte[] data)
-        {
-            Stream stream = new MemoryStream(data);
-            var archive = new ZipArchive(stream);
+	public static StreamReader? GetCSVFileStreamReader(byte[] data)
+	{
+		Stream stream = new MemoryStream(data);
+		var archive = new ZipArchive(stream);
 
-            var csvFile = archive.Entries.FirstOrDefault();
+		var csvFile = archive.Entries.FirstOrDefault();
 
-            if (csvFile == null)
-            {
-                return null;
-            }
+		if (csvFile == null)
+		{
+			return null;
+		}
 
-            var fileData = csvFile.Open();
+		var fileData = csvFile.Open();
 
-            return new StreamReader(fileData);
-        }
-    }
+		return new(fileData);
+	}
 }

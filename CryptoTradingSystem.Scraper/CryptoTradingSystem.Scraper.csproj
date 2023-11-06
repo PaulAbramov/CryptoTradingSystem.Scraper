@@ -1,49 +1,49 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <LangVersion>latestmajor</LangVersion>
-    <Nullable>enable</Nullable>
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <ContainerRuntimeIdentifier>linux-arm64</ContainerRuntimeIdentifier>
-    <ContainerImageName>crypto-tradingsystem-parser</ContainerImageName>
-    <OutputType>Exe</OutputType>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <LangVersion>latestmajor</LangVersion>
+        <Nullable>enable</Nullable>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <ContainerRuntimeIdentifier>linux-arm64</ContainerRuntimeIdentifier>
+        <ContainerImageName>crypto-tradingsystem-parser</ContainerImageName>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
 
-  <ItemGroup Label="Entrypoint Assignment">
-    <ContainerEntrypoint Include="dotnet;CryptoTradingSystem.Scraper.dll" />
-  </ItemGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\Releasebuilds\CryptoTradingSystem.Scraper\</OutputPath>
-  </PropertyGroup>
+    <ItemGroup Label="Entrypoint Assignment">
+        <ContainerEntrypoint Include="dotnet;CryptoTradingSystem.Scraper.dll"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.12">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
-    <PackageReference Include="Microsoft.NET.Build.Containers" Version="7.0.402" />
-    <PackageReference Include="MySql.Data" Version="8.1.0" />
-    <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.5" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Serilog" Version="2.12.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="Skender.Stock.Indicators" Version="2.4.11" />
-  </ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <OutputPath>..\..\Releasebuilds\CryptoTradingSystem.Scraper\</OutputPath>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.12">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1"/>
+        <PackageReference Include="Microsoft.NET.Build.Containers" Version="7.0.402"/>
+        <PackageReference Include="MySql.Data" Version="8.1.0"/>
+        <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.5"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="Serilog" Version="2.12.0"/>
+        <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0"/>
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
+        <PackageReference Include="Skender.Stock.Indicators" Version="2.4.11"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="CryptoTradingSystem.General">
-      <HintPath>..\..\Releasebuilds\CryptoTradingSystem.General\net7.0\CryptoTradingSystem.General.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="CryptoTradingSystem.General">
+            <HintPath>..\..\Releasebuilds\CryptoTradingSystem.General\net7.0\CryptoTradingSystem.General.dll</HintPath>
+        </Reference>
+    </ItemGroup>
 
 </Project>
