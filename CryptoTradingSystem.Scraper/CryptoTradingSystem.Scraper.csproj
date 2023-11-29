@@ -11,7 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup Label="Entrypoint Assignment">
-        <ContainerEntrypoint Include="dotnet;CryptoTradingSystem.Scraper.dll"/>
+        <ContainerEntrypoint Include="dotnet;CryptoTradingSystem.Scraper.dll" />
     </ItemGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -19,19 +19,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.12">
+        <PackageReference Include="Binance.Net" Version="9.1.7" />
+        <PackageReference Include="bybit.net.api" Version="1.0.7" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.13">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1"/>
-        <PackageReference Include="Microsoft.NET.Build.Containers" Version="7.0.402"/>
-        <PackageReference Include="MySql.Data" Version="8.1.0"/>
-        <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.5"/>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-        <PackageReference Include="Serilog" Version="2.12.0"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0"/>
-        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0"/>
-        <PackageReference Include="Skender.Stock.Indicators" Version="2.4.11"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+        <PackageReference Include="Microsoft.NET.Build.Containers" Version="8.0.100" />
+        <PackageReference Include="MySql.Data" Version="8.2.0" />
+        <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.10" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Serilog" Version="3.1.1" />
+        <PackageReference Include="Serilog.Sinks.Console" Version="5.0.0" />
+        <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+        <PackageReference Include="Skender.Stock.Indicators" Version="2.5.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -9,7 +9,13 @@ namespace CryptoTradingSystem.Scraper;
 
 internal class Scrapper
 {
-	private const string BaseUrl = "https://data.binance.vision/data/spot/monthly/klines/";
+	// Bybit
+	// Bybit base url = https://api.bybit.com
+	private const string BybitBaseUrl = "https://data.binance.vision/data/spot/monthly/klines/";
+	
+	// Binance
+	private const string BinanceBaseUrl = "https://data.binance.vision/data/spot/monthly/klines/";
+	
 	private const int StartYear = 2017;
 	private const int StartMonth = 1;
 	private readonly int _currentMonth = DateTime.Today.Month;
@@ -30,7 +36,7 @@ internal class Scrapper
 			foreach (var timeFrame in (Enums.TimeFrames[]) Enum.GetValues(typeof(Enums.TimeFrames)))
 			{
 				var url =
-					$"{BaseUrl}{asset.GetStringValue()?.ToUpper()}/{timeFrame.GetStringValue()}/{asset.GetStringValue()?.ToUpper()}-{timeFrame.GetStringValue()}-";
+					$"{BinanceBaseUrl}{asset.GetStringValue()?.ToUpper()}/{timeFrame.GetStringValue()}/{asset.GetStringValue()?.ToUpper()}-{timeFrame.GetStringValue()}-";
 
 				for (var iteratingYear = StartYear; iteratingYear <= _currentYear; iteratingYear++)
 				{
