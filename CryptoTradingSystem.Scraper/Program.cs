@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,37 +48,51 @@ internal static class Program
 		Thread.CurrentThread.CurrentCulture = info;
 		Thread.CurrentThread.CurrentUICulture = Thread.CurrentThread.CurrentCulture;
 
-		var tasks = new Dictionary<Enums.Exchange ,Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>>>();
-		
-		// var scrapperTask = Task.Factory.StartNew(
-		// 	() =>
-		// 	{
-		// 		var scrapper = new Scrapper();
-		// 		scrapper.StartScrapping(connectionString);
-		// 	});
-		
-		foreach(var exchange in (Enums.Exchange[]) Enum.GetValues(typeof(Enums.Exchange)))
+		var tasks = new Dictionary<Enums.Exchange, Dictionary<Enums.Assets, Dictionary<Enums.TimeFrames, Task>>>();
+
+		var scrapperTask = Task.Factory.StartNew(
+			async () =>
+			{
+				foreach (var exchange in (Enums.Exchange[]) Enum.GetValues(typeof(Enums.Exchange)))
+				{
+					switch (exchange)
+					{
+						case Enums.Exchange.Binance:
+							var binanceScraper = new BinanceScraper();
+							await binanceScraper.StartScrapping(connectionString);
+							break;
+						case Enums.Exchange.Bybit:
+							var bybitScraper = new BybitScraper();
+							await bybitScraper.StartScrapping(connectionString);
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(exchange), exchange, null);
+					}
+				}
+			});
+
+		foreach (var exchange in (Enums.Exchange[]) Enum.GetValues(typeof(Enums.Exchange)))
 		{
 			tasks.Add(exchange, new());
-			
+
 			foreach (var asset in (Enums.Assets[]) Enum.GetValues(typeof(Enums.Assets)))
 			{
 				tasks[exchange].Add(asset, new());
-			
+
 				foreach (var timeFrame in (Enums.TimeFrames[]) Enum.GetValues(typeof(Enums.TimeFrames)))
 				{
 					tasks[exchange][asset].Add(timeFrame, CreateWebsocket(exchange, asset, timeFrame, connectionString));
 				}
 			}
 		}
-		
+
 		var runScrapper = false;
 		var allowToRunScrapper = false;
-		
+
 		while (true)
 		{
-			//HandleScrapperStatus(scrapperTask, runScrapper, allowToRunScrapper, connectionString, tasks);
-		
+			HandleScrapperStatus(scrapperTask, runScrapper, allowToRunScrapper, connectionString, tasks);
+
 			Task.Delay(500).GetAwaiter().GetResult();
 		}
 	}
@@ -94,21 +107,6 @@ internal static class Program
 		if (scrapperTask.Status != TaskStatus.Running && scrapperTask.Status != TaskStatus.WaitingToRun)
 		{
 			RestartScrapperOnEverySecondDayOfMonth(scrapperTask, runScrapper, allowToRunScrapper, connectionString);
-		}
-
-		foreach (var exchange in (Enums.Exchange[]) Enum.GetValues(typeof(Enums.Exchange)))
-		{
-			foreach (var asset in (Enums.Assets[]) Enum.GetValues(typeof(Enums.Assets)))
-			{
-				foreach (var timeFrame in (Enums.TimeFrames[]) Enum.GetValues(typeof(Enums.TimeFrames)))
-				{
-					var taskToCheck = tasks[exchange][asset][timeFrame];
-					if (taskToCheck.Status != TaskStatus.Running && taskToCheck.Status != TaskStatus.WaitingToRun)
-					{
-						tasks[exchange][asset][timeFrame] = CreateWebsocket(exchange, asset, timeFrame, connectionString);
-					}
-				}
-			}
 		}
 	}
 
@@ -134,10 +132,24 @@ internal static class Program
 		if (runScrapper)
 		{
 			scrapperTask = Task.Factory.StartNew(
-				() =>
+				async () =>
 				{
-					var scrapper = new Scrapper();
-					scrapper.StartScrapping(connectionString);
+					foreach (var exchange in (Enums.Exchange[]) Enum.GetValues(typeof(Enums.Exchange)))
+					{
+						switch (exchange)
+						{
+							case Enums.Exchange.Binance:
+								var binanceScraper = new BinanceScraper();
+								await binanceScraper.StartScrapping(connectionString);
+								break;
+							case Enums.Exchange.Bybit:
+								var bybitScraper = new BybitScraper();
+								await bybitScraper.StartScrapping(connectionString);
+								break;
+							default:
+								throw new ArgumentOutOfRangeException(nameof(exchange), exchange, null);
+						}
+					}
 				});
 
 			runScrapper = false;
@@ -152,9 +164,13 @@ internal static class Program
 	/// <param name="timeFrame"></param>
 	/// <param name="connectionString"></param>
 	/// <returns></returns>
-	private static async Task<Task> CreateWebsocket(Enums.Exchange exchange, Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
-    {
-	    var taskToWork = await Task.Factory.StartNew(
+	private static async Task<Task> CreateWebsocket(
+		Enums.Exchange exchange,
+		Enums.Assets asset,
+		Enums.TimeFrames timeFrame,
+		string connectionString)
+	{
+		var taskToWork = await Task.Factory.StartNew(
 			async Task () =>
 			{
 				switch (exchange)

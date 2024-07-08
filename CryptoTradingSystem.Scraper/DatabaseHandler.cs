@@ -38,7 +38,7 @@ internal static class DatabaseHandler
 			foreach (var asset in assets)
 			{
 				var candle = contextDb.Assets?.FirstOrDefault(
-					x => 
+					x =>
 						x.Exchange == asset.Exchange
 						&& x.AssetName == asset.AssetName
 						&& x.Interval == asset.Interval

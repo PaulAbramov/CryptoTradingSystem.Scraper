@@ -1,4 +1,5 @@
-﻿using bybit.net.api.WebSocketStream;
+﻿using bybit.net.api.Websockets;
+using bybit.net.api.WebSocketStream;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Helper;
 using CryptoTradingSystem.Scraper.Interfaces;
@@ -7,6 +8,7 @@ using Newtonsoft.Json.Linq;
 using Serilog;
 using System;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,15 +16,19 @@ namespace CryptoTradingSystem.Scraper.Bybit;
 
 public class BybitWebSocket : IWebSocketManager
 {
-	private Tuple<DateTime, decimal?> lastCandleClose = new Tuple<DateTime, decimal?>(default, default);
+	private readonly BybitWebSocketHandler socketHandler;
+	private readonly BybitLinearWebSocket linearWebsocket;
+	
+	private Tuple<DateTime, decimal?> lastCandleClose = new(default, default);
+
+	public BybitWebSocket()
+	{
+		socketHandler = new BybitWebSocketHandler(new ClientWebSocket());
+		linearWebsocket = new BybitLinearWebSocket(socketHandler, false, logger: Log.Logger);
+	}
 
 	public async Task CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
 	{
-		Log.Information(
-			"Bybit | {Asset} | {TimeFrame} | open websocket",
-			asset.GetStringValue(),
-			timeFrame.GetStringValue());
-
 		var interval = timeFrame switch
 		{
 			Enums.TimeFrames.M5  => "5",
@@ -32,17 +38,51 @@ public class BybitWebSocket : IWebSocketManager
 			Enums.TimeFrames.D1  => "D",
 			_                    => throw new ArgumentOutOfRangeException(nameof(timeFrame), timeFrame, null)
 		};
+		
+		var cancellationTokenSource = new CancellationTokenSource();
 
-		var linearWebsocket = new BybitLinearWebSocket(useTestNet: false);
-		linearWebsocket.OnMessageReceived(data =>
+		linearWebsocket.OnMessageReceived(
+			data =>
 			{
 				HandleMessage(asset, timeFrame, connectionString, data);
 				return Task.CompletedTask;
 			},
-			CancellationToken.None);
+			cancellationTokenSource.Token);
+
+		await ConnectWebSocket(asset, timeFrame, interval, cancellationTokenSource);
+
+		//TODO state hier richtig usen
+		// TODO oder cancellationtoken nutzen
+		while (socketHandler.State == WebSocketState.Open)
+		{
+			await Task.Delay(1000);
+
+			if (!cancellationTokenSource.Token.IsCancellationRequested)
+			{
+				continue;
+			}
+
+			cancellationTokenSource = new CancellationTokenSource();
+			await ConnectWebSocket(asset, timeFrame, interval, cancellationTokenSource);
+		}
+	}
+
+	private async Task ConnectWebSocket(
+		Enums.Assets asset,
+		Enums.TimeFrames timeFrame,
+		string interval,
+		CancellationTokenSource cancellationTokenSource)
+	{
+		Log.Information(
+			"Bybit | {Asset} | {TimeFrame} | open websocket",
+			asset.GetStringValue(),
+			timeFrame.GetStringValue());
+		
 		try
 		{
-			await linearWebsocket.ConnectAsync(new string[] { $"kline.{interval}.{asset.GetStringValue()!.ToUpper()}" }, CancellationToken.None);
+			await linearWebsocket.ConnectAsync(
+				new[] { $"kline.{interval}.{asset.GetStringValue()!.ToUpper()}" },
+				cancellationTokenSource.Token);
 		}
 		catch (Exception e)
 		{
@@ -51,11 +91,10 @@ public class BybitWebSocket : IWebSocketManager
 				"Bybit | {Asset} | {TimeFrame} | could not connect to the websocket",
 				asset.GetStringValue(),
 				timeFrame.GetStringValue());
-			throw;
 		}
 	}
-
-	public void HandleMessage(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString, object data)
+	
+	private void HandleMessage(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString, object data)
 	{
 		JObject json;
 		var message = data as string;
@@ -83,7 +122,7 @@ public class BybitWebSocket : IWebSocketManager
 		{
 			return;
 		}
-		
+
 		var dataObject = json["data"]!.FirstOrDefault();
 		if (dataObject == null)
 		{
@@ -92,13 +131,14 @@ public class BybitWebSocket : IWebSocketManager
 
 		var openTime = Convert.ToInt64(dataObject["start"]!.Value<string>());
 		var closeTime = Convert.ToInt64(dataObject["end"]!.Value<string>());
-		
+
 		var openPriceString = dataObject["open"]!.Value<string>()!;
 		var highPriceString = dataObject["high"]!.Value<string>()!;
 		var lowPriceString = dataObject["low"]!.Value<string>()!;
 		var closePriceString = dataObject["close"]!.Value<string>()!;
 		var volumeString = dataObject["volume"]!.Value<string>()!;
 		var quoteAssetVolumeString = dataObject["turnover"]!.Value<string>()!;
+
 		//var tradesString = dataObject["n"]!.Value<string>()!;
 		//var takerBuyBaseAssetVolumeString = dataObject["V"]!.Value<string>()!;
 		//var takerBuyQuoteAssetVolumeString = dataObject["Q"]!.Value<string>()!;
@@ -121,7 +161,8 @@ public class BybitWebSocket : IWebSocketManager
 						CandleClose = Convert.ToDecimal(closePriceString),
 						CloseTime = dateTimeClose.DateTime,
 						Volume = Convert.ToDecimal(volumeString),
-						QuoteAssetVolume = Convert.ToDecimal(quoteAssetVolumeString),
+						QuoteAssetVolume = Convert.ToDecimal(quoteAssetVolumeString)
+
 						//Trades = Convert.ToInt64(tradesString),
 						//TakerBuyBaseAssetVolume = Convert.ToDecimal(takerBuyBaseAssetVolumeString),
 						//TakerBuyQuoteAssetVolume = Convert.ToDecimal(takerBuyQuoteAssetVolumeString)

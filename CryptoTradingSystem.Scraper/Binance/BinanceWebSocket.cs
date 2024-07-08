@@ -1,6 +1,8 @@
 ﻿using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
+using CryptoExchange.Net.Objects;
+using CryptoExchange.Net.Sockets;
 using CryptoTradingSystem.General.Data;
 using CryptoTradingSystem.General.Helper;
 using CryptoTradingSystem.Scraper.Interfaces;
@@ -12,7 +14,7 @@ namespace CryptoTradingSystem.Scraper.Binance;
 
 public class BinanceWebSocket : IWebSocketManager
 {
-	private Tuple<DateTime, decimal?> lastCandleClose = new Tuple<DateTime, decimal?>(default, default);
+	private Tuple<DateTime, decimal?> lastCandleClose = new(default, default);
 
 	public async Task CreateWebSocket(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString)
 	{
@@ -33,22 +35,37 @@ public class BinanceWebSocket : IWebSocketManager
 
 		try
 		{
-			var client = new BinanceSocketClient();  
-			var result = await client.UsdFuturesApi.SubscribeToKlineUpdatesAsync(asset.GetStringValue()!, interval, onMessage: async data =>
+			var client = new BinanceSocketClient();
+
+			CallResult<UpdateSubscription> result; 
+			do
 			{
-				HandleMessage(asset, timeFrame, connectionString, data.Data);
-			});
+				await Task.Delay(1000);
+				
+				result = await client.UsdFuturesApi.SubscribeToKlineUpdatesAsync(
+					asset.GetStringValue()!,
+					interval,
+					async data =>
+					{
+						HandleMessage(asset, timeFrame, connectionString, data.Data);
+					});
+			} while (!result.Success);
 			
-			result.Data.ConnectionLost += async () =>
+			while (true)
 			{
 				await Task.Delay(1000);
-				await result.Data.ReconnectAsync();
-			};
-			result.Data.ConnectionClosed += async () =>
-			{
-				await Task.Delay(1000);
-				await result.Data.ReconnectAsync();
-			};
+
+				result.Data.ConnectionLost += async () =>
+				{
+					await Task.Delay(1000);
+					await result.Data.ReconnectAsync();
+				};
+				result.Data.ConnectionClosed += async () =>
+				{
+					await Task.Delay(1000);
+					await result.Data.ReconnectAsync();
+				};
+			}
 		}
 		catch (Exception e)
 		{
@@ -61,7 +78,7 @@ public class BinanceWebSocket : IWebSocketManager
 		}
 	}
 
-	public void HandleMessage(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString, object data)
+	private void HandleMessage(Enums.Assets asset, Enums.TimeFrames timeFrame, string connectionString, object data)
 	{
 		var klineData = ((IBinanceStreamKlineData) data).Data;
 
@@ -101,7 +118,7 @@ public class BinanceWebSocket : IWebSocketManager
 						Exchange = Enums.Exchange.Binance.GetStringValue()!,
 						AssetName = asset.GetStringValue(),
 						Interval = timeFrame.GetStringValue(),
-						OpenTime = 	klineData.OpenTime,
+						OpenTime = klineData.OpenTime,
 						CloseTime = klineData.CloseTime,
 						ReturnToLastCandle = lastCandleCloseValue.HasValue
 							? klineData.ClosePrice - lastCandleCloseValue.Value

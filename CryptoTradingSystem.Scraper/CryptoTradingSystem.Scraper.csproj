@@ -20,7 +20,6 @@
 
     <ItemGroup>
         <PackageReference Include="Binance.Net" Version="9.1.7" />
-        <PackageReference Include="bybit.net.api" Version="1.0.7" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.13">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -43,6 +42,9 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Reference Include="bybit.net.api">
+          <HintPath>..\..\..\bybit.net.api\Src\Common\bin\Release\net6.0\bybit.net.api.dll</HintPath>
+        </Reference>
         <Reference Include="CryptoTradingSystem.General">
             <HintPath>..\..\Releasebuilds\CryptoTradingSystem.General\net7.0\CryptoTradingSystem.General.dll</HintPath>
         </Reference>
